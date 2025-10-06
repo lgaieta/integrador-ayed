@@ -47,6 +47,32 @@ float cadenaAHorario(char cadena[11])
     return acumulador;
 }
 
+char* horarioACadena(float segundos){
+
+    int horas = (segundos/60)/60;
+    static char hours [11];
+
+    hours[0] = (horas/10) + 48; 
+    hours[1] = (horas%10) + 48;
+    segundos -= horas*60*60; 
+    int mins = segundos/60;
+    float segs = segundos - mins * 60;
+     
+    hours[0] = (horas/10) + 48;
+    hours[1] = (horas%10) + 48;
+    hours[2] = ':';
+    hours[3] = (mins/10) + 48;
+    hours[4] = (mins%10) + 48;
+    hours[5] = ':';
+    hours[6] = ((int)segs/10) + 48;
+    hours[7] = ((int)segs%10) + 48;
+    hours[8] = ',';
+    hours[9] = ((int)(segs*10)%10) + 48;
+    hours[10] = '\0';  
+    return hours;
+}
+
+
 int main()
 {
     FILE *archivoCorredores = fopen("C:/programming/utn/integrador/Archivo corredores 4Refugios.bin", "rb+");
