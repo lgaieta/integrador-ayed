@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string.h>
 
 using namespace std;
 
@@ -25,6 +26,18 @@ struct ReporteCorredor
     char tiempoTotal[11];
     char diferenciaPrimero[11];
     char diferenciaAnterior[11];
+};
+
+struct ContadorCategoria
+{
+    char categoria[50];
+    int cantidad;
+};
+
+struct ContadorGenero
+{
+    char genero;
+    int cantidad;
 };
 
 struct CorredorCiudad
@@ -88,6 +101,75 @@ int main()
     return 0;
 }
 
+void generarReporte(ReporteCorredor corredores[], int cantidadCorredores)
+{
+    ContadorCategoria contadoresCategoria[1000];
+    int cantidadCategorias = 0;
+    ContadorGenero contadoresGenero[1000];
+    int cantidadGeneros = 0;
+
+    for (int i = 0; i < cantidadCorredores; i++)
+    {
+        // Obtener el mayor actual por tiempo total
+        int posicionMayorActual = i;
+        for (int j = i + 1; j < cantidadCorredores; j++)
+        {
+            if (horarioCadenaASegundos(corredores[j].tiempoTotal) > horarioCadenaASegundos(corredores[posicionMayorActual].tiempoTotal))
+            {
+                posicionMayorActual = j;
+            }
+        }
+
+        // Asignar posicion general
+        corredores[posicionMayorActual].posicionGeneral = i + 1;
+
+        // Asignar posicion por categoria
+        bool categoriaEncontrada = false;
+        for (int k = 0; k < cantidadCategorias; k++)
+        {
+            if (strcmp(corredores[posicionMayorActual].categoria, contadoresCategoria[k].categoria) == 0)
+            {
+                contadoresCategoria[k].cantidad++;
+                corredores[posicionMayorActual].posicionCategoria = contadoresCategoria[k].cantidad;
+                categoriaEncontrada = true;
+                break;
+            }
+        }
+        if (categoriaEncontrada == false)
+        {
+            strcpy(contadoresCategoria[cantidadCategorias].categoria, corredores[posicionMayorActual].categoria);
+            contadoresCategoria[cantidadCategorias].cantidad = 1;
+            corredores[posicionMayorActual].posicionCategoria = 1;
+            cantidadCategorias++;
+        }
+
+        // Asignar posicion por genero
+        bool generoEncontrado = false;
+        for (int k = 0; k < cantidadGeneros; k++)
+        {
+            if (corredores[posicionMayorActual].genero == contadoresGenero[k].genero)
+            {
+                contadoresGenero[k].cantidad++;
+                corredores[posicionMayorActual].posicionGenero = contadoresGenero[k].cantidad;
+                generoEncontrado = true;
+                break;
+            }
+        }
+        if (generoEncontrado == false)
+        {
+            contadoresGenero[cantidadGeneros].genero = corredores[posicionMayorActual].genero;
+            contadoresGenero[cantidadGeneros].cantidad = 1;
+            corredores[posicionMayorActual].posicionGenero = 1;
+            cantidadGeneros++;
+        }
+
+        // Intercambio de posiciones para ordenar por tiempo total
+        ReporteCorredor aux = corredores[posicionMayorActual];
+        corredores[posicionMayorActual] = corredores[i];
+        corredores[i] = aux;
+    }
+}
+
 // HH:MM:SS.D
 float horarioCadenaASegundos(char cadena[11])
 {
@@ -102,7 +184,6 @@ float horarioCadenaASegundos(char cadena[11])
 
 char *horarioSegundosACadena(float segundos)
 {
-
     int horas = (segundos / 60) / 60;
     static char hours[11];
 
