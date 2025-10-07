@@ -1,5 +1,5 @@
 #include <iostream>
-#include <string.h>
+#include <cstring>
 
 using namespace std;
 
@@ -38,6 +38,13 @@ struct ContadorGenero
 {
     char genero;
     int cantidad;
+};
+
+struct PodioCategoria
+{
+    char categoria[50];
+    int cantidadCargada;
+    ReporteCorredor corredores[3];
 };
 
 struct CorredorCiudad
@@ -168,6 +175,77 @@ void generarReporte(ReporteCorredor corredores[], int cantidadCorredores)
         corredores[posicionMayorActual] = corredores[i];
         corredores[i] = aux;
     }
+}
+
+void guardarPodiosEnArchivo(ReporteCorredor corredores[], int cantidadCorredores)
+{
+    PodioCategoria podios[1000];
+    int cantidadPodios = 0;
+
+    // Guardar podios por categoria
+    for (int i = 0; i < cantidadCorredores; i++)
+    {
+        bool categoriaEncontrada = false;
+        for (int j = 0; j < cantidadPodios; j++)
+        {
+            if (strcmp(corredores[i].categoria, podios[j].categoria) == 0)
+            {
+                if (podios[j].cantidadCargada < 3)
+                {
+                    podios[j].corredores[podios[j].cantidadCargada] = corredores[i];
+                    podios[j].cantidadCargada++;
+                }
+                categoriaEncontrada = true;
+                break;
+            }
+        }
+
+        if (categoriaEncontrada == false)
+        {
+            strcpy(podios[cantidadPodios].categoria, corredores[i].categoria);
+            podios[cantidadPodios].corredores[0] = corredores[i];
+            podios[cantidadPodios].cantidadCargada = 1;
+            cantidadPodios++;
+        }
+    }
+
+    // Ordenar podios por categoria
+    for (int i = 0; i < cantidadPodios; i++)
+    {
+        int posicionMenorActual = i;
+        for (int j = i + 1; j < cantidadPodios; j++)
+        {
+            if (strcmp(podios[i].categoria, podios[j].categoria) < 0)
+            {
+                posicionMenorActual = j;
+            }
+        }
+        PodioCategoria aux = podios[i];
+        podios[i] = podios[posicionMenorActual];
+        podios[posicionMenorActual] = aux;
+    }
+
+    ReporteCorredor reportesPodios[1000];
+    int indiceReportes = 0;
+
+    for (int i = 0; i < cantidadPodios; i++)
+    {
+        for (int j = 0; j < podios[i].cantidadCargada; j++)
+        {
+            reportesPodios[indiceReportes] = podios[i].corredores[j];
+            indiceReportes++;
+        }
+    }
+
+    FILE *archivoPodios = fopen("C:/programming/utn/integrador/podios.bin", "wb");
+    if (!archivoPodios)
+    {
+        cout << "Error al abrir el archivo podios.bin";
+        return;
+    }
+
+    fwrite(reportesPodios, sizeof(ReporteCorredor), indiceReportes, archivoPodios);
+    fclose(archivoPodios);
 }
 
 // HH:MM:SS.D
