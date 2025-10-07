@@ -22,7 +22,6 @@ struct ReporteCorredor
     char categoria[50];
     char genero;
     char localidad[40];
-    char llegada[11];
     char tiempoTotal[11];
     char diferenciaPrimero[11];
     char diferenciaAnterior[11];
@@ -37,13 +36,13 @@ struct CorredorCiudad
 };
 
 void cargarHorarioSalida(char[]);
-void cargarCorredores(ReporteCorredor corredoresClasica[],
+void cargarCorredores(RegistroCorredor registrosCorredoresClasica[],
                       int &cantidadCorredoresClasica,
-                      ReporteCorredor corredoresNonstop[],
+                      RegistroCorredor registrosCorredoresNonstop[],
                       int &cantidadCorredoresNonstop);
 bool esDescalificado(ReporteCorredor);
-void calcularTiempo(ReporteCorredor, char horarioSalida[]);
-void calcularTiempos(ReporteCorredor[], int cantidadCorredores, char horarioSalida[]);
+ReporteCorredor calcularTiempo(RegistroCorredor, char horarioSalida[]);
+void calcularTiempos(RegistroCorredor[], ReporteCorredor[], int cantidadCorredores, char horarioSalida[]);
 void generarReporte(ReporteCorredor[], int cantidadCorredores);
 void guardarReporteEnArchivo(ReporteCorredor[], int cantidadCorredores);
 void guardarPodiosEnArchivo(ReporteCorredor[], int cantidadCorredores);
@@ -57,29 +56,34 @@ int main()
     char horarioSalida[11];
     cargarHorarioSalida(horarioSalida);
 
-    ReporteCorredor corredoresClasica[1000];
+    RegistroCorredor registrosCorredoresClasica[1000];
     int cantidadCorredoresClasica = 0;
-    ReporteCorredor corredoresNonstop[1000];
+    RegistroCorredor registrosCorredoresNonstop[1000];
     int cantidadCorredoresNonstop = 0;
-    cargarCorredores(corredoresClasica,
+    cargarCorredores(registrosCorredoresClasica,
                      cantidadCorredoresClasica,
-                     corredoresNonstop,
+                     registrosCorredoresNonstop,
                      cantidadCorredoresNonstop);
 
-    calcularTiempos(corredoresClasica,
+    ReporteCorredor reportesCorredoresClasica[1000];
+    ReporteCorredor reportesCorredoresNonstop[1000];
+
+    calcularTiempos(registrosCorredoresClasica,
+                    reportesCorredoresClasica,
                     cantidadCorredoresClasica,
                     horarioSalida);
-    calcularTiempos(corredoresNonstop,
+    calcularTiempos(registrosCorredoresNonstop,
+                    reportesCorredoresNonstop,
                     cantidadCorredoresNonstop,
                     horarioSalida);
-                    
-    generarReporte(corredoresClasica, cantidadCorredoresClasica);
-    generarReporte(corredoresNonstop, cantidadCorredoresNonstop);
 
-    guardarReporteEnArchivo(corredoresClasica, cantidadCorredoresClasica);
-    guardarReporteEnArchivo(corredoresNonstop, cantidadCorredoresNonstop);
-    guardarPodiosEnArchivo(corredoresClasica, cantidadCorredoresClasica);
-    guardarPodiosEnArchivo(corredoresNonstop, cantidadCorredoresNonstop);
+    generarReporte(reportesCorredoresClasica, cantidadCorredoresClasica);
+    generarReporte(reportesCorredoresNonstop, cantidadCorredoresNonstop);
+
+    guardarReporteEnArchivo(reportesCorredoresClasica, cantidadCorredoresClasica);
+    guardarReporteEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop);
+    guardarPodiosEnArchivo(reportesCorredoresClasica, cantidadCorredoresClasica);
+    guardarPodiosEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop);
 
     return 0;
 }
