@@ -22,6 +22,7 @@ struct ReporteCorredor
     char categoria[50];
     char genero;
     char localidad[40];
+    char llegada[11];
     char tiempoTotal[11];
     char diferenciaPrimero[11];
     char diferenciaAnterior[11];
@@ -35,8 +36,56 @@ struct CorredorCiudad
     char ciudad[11];
 };
 
+void cargarHorarioSalida(char[]);
+void cargarCorredores(ReporteCorredor corredoresClasica[],
+                      int &cantidadCorredoresClasica,
+                      ReporteCorredor corredoresNonstop[],
+                      int &cantidadCorredoresNonstop);
+bool esDescalificado(ReporteCorredor);
+void calcularTiempo(ReporteCorredor, char horarioSalida[]);
+void calcularTiempos(ReporteCorredor[], int cantidadCorredores, char horarioSalida[]);
+void generarReporte(ReporteCorredor[], int cantidadCorredores);
+void guardarReporteEnArchivo(ReporteCorredor[], int cantidadCorredores);
+void guardarPodiosEnArchivo(ReporteCorredor[], int cantidadCorredores);
+
 // HH:MM:SS.D
-float cadenaAHorario(char cadena[11])
+float horarioCadenaASegundos(char cadena[11]);
+char *horarioSegundosACadena(float segundos);
+
+int main()
+{
+    char horarioSalida[11];
+    cargarHorarioSalida(horarioSalida);
+
+    ReporteCorredor corredoresClasica[1000];
+    int cantidadCorredoresClasica = 0;
+    ReporteCorredor corredoresNonstop[1000];
+    int cantidadCorredoresNonstop = 0;
+    cargarCorredores(corredoresClasica,
+                     cantidadCorredoresClasica,
+                     corredoresNonstop,
+                     cantidadCorredoresNonstop);
+
+    calcularTiempos(corredoresClasica,
+                    cantidadCorredoresClasica,
+                    horarioSalida);
+    calcularTiempos(corredoresNonstop,
+                    cantidadCorredoresNonstop,
+                    horarioSalida);
+                    
+    generarReporte(corredoresClasica, cantidadCorredoresClasica);
+    generarReporte(corredoresNonstop, cantidadCorredoresNonstop);
+
+    guardarReporteEnArchivo(corredoresClasica, cantidadCorredoresClasica);
+    guardarReporteEnArchivo(corredoresNonstop, cantidadCorredoresNonstop);
+    guardarPodiosEnArchivo(corredoresClasica, cantidadCorredoresClasica);
+    guardarPodiosEnArchivo(corredoresNonstop, cantidadCorredoresNonstop);
+
+    return 0;
+}
+
+// HH:MM:SS.D
+float horarioCadenaASegundos(char cadena[11])
 {
     float acumulador = 0;
     acumulador += ((cadena[0] - 48) * 10 + (cadena[1] - 48)) * 3600;
@@ -47,53 +96,28 @@ float cadenaAHorario(char cadena[11])
     return acumulador;
 }
 
-char* horarioACadena(float segundos){
-
-    int horas = (segundos/60)/60;
-    static char hours [11];
-
-    hours[0] = (horas/10) + 48; 
-    hours[1] = (horas%10) + 48;
-    segundos -= horas*60*60; 
-    int mins = segundos/60;
-    float segs = segundos - mins * 60;
-     
-    hours[0] = (horas/10) + 48;
-    hours[1] = (horas%10) + 48;
-    hours[2] = ':';
-    hours[3] = (mins/10) + 48;
-    hours[4] = (mins%10) + 48;
-    hours[5] = ':';
-    hours[6] = ((int)segs/10) + 48;
-    hours[7] = ((int)segs%10) + 48;
-    hours[8] = ',';
-    hours[9] = ((int)(segs*10)%10) + 48;
-    hours[10] = '\0';  
-    return hours;
-}
-
-
-int main()
+char *horarioSegundosACadena(float segundos)
 {
-    FILE *archivoCorredores = fopen("C:/programming/utn/integrador/Archivo corredores 4Refugios.bin", "rb+");
 
-    if (!archivoCorredores)
-    {
-        cout << "Falta el archivo de corredores." << endl;
-        return 1;
-    }
+    int horas = (segundos / 60) / 60;
+    static char hours[11];
 
-    RegistroCorredor corredores[1000];
+    hours[0] = (horas / 10) + 48;
+    hours[1] = (horas % 10) + 48;
+    segundos -= horas * 60 * 60;
+    int mins = segundos / 60;
+    float segs = segundos - mins * 60;
 
-    float horaSalida = 3000;
-
-    int i = 0;
-    while (fread(&corredores[i], sizeof(RegistroCorredor), 1, archivoCorredores) == 1)
-    {
-        cout << corredores[i].nombreApellido;
-        cout << cadenaAHorario(corredores[i].llegada) << endl;
-        i++;
-    }
-
-    return 0;
+    hours[0] = (horas / 10) + 48;
+    hours[1] = (horas % 10) + 48;
+    hours[2] = ':';
+    hours[3] = (mins / 10) + 48;
+    hours[4] = (mins % 10) + 48;
+    hours[5] = ':';
+    hours[6] = ((int)segs / 10) + 48;
+    hours[7] = ((int)segs % 10) + 48;
+    hours[8] = ',';
+    hours[9] = ((int)(segs * 10) % 10) + 48;
+    hours[10] = '\0';
+    return hours;
 }
