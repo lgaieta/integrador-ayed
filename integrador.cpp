@@ -55,17 +55,57 @@ struct CorredorCiudad
     char ciudad[11];
 };
 
+struct ReporteCiudad
+{
+    char nombre[11];
+    int cantidadCorredores;
+    char promedioTiempo[11];
+};
+
+struct Localidad
+{
+    char nombre[40];
+    int cantidadCorredores;
+    char tiempoPromedio[11];
+    int cantidadCiudades;
+    ReporteCiudad ciudades[1000];
+};
+
 void cargarHorarioSalida(char[]);
 void cargarCorredores(RegistroCorredor registrosCorredoresClasica[],
                       int &cantidadCorredoresClasica,
                       RegistroCorredor registrosCorredoresNonstop[],
                       int &cantidadCorredoresNonstop);
+
 bool esDescalificado(ReporteCorredor);
 ReporteCorredor calcularTiempo(RegistroCorredor, char horarioSalida[]);
-void calcularTiempos(RegistroCorredor[], ReporteCorredor[], int cantidadCorredores, char horarioSalida[]);
+
+void calcularTiempos(RegistroCorredor[],
+                     ReporteCorredor[],
+                     int cantidadCorredores,
+                     char horarioSalida[]);
+
 void generarReporte(ReporteCorredor[], int cantidadCorredores);
 void guardarReporteEnArchivo(ReporteCorredor[], int cantidadCorredores);
 void guardarPodiosEnArchivo(ReporteCorredor[], int cantidadCorredores);
+void cargarCorredoresCiudad(CorredorCiudad[], int &cantidadCorredoresCiudad);
+
+void unirCorredores(ReporteCorredor corredoresCarrera1[],
+                    int cantidadCorredores1,
+                    ReporteCorredor corredoresCarrera2[],
+                    int cantidadCorredores2,
+                    ReporteCorredor corredoresCarreraTotal[]);
+
+void generarReporteLocalidades(Localidad[],
+                               int &cantidadLocalidades,
+                               ReporteCorredor[],
+                               int cantidadCorredores,
+                               CorredorCiudad[],
+                               int cantidadCorredoresCiudad);
+
+void ordenarCiudadesPorNombre(Localidad &localidad);
+void ordenarLocalidades(Localidad localidades[], int cantidadLocalidades);
+void mostrarLocalidades(Localidad localidades[], int cantidadLocalidades);
 
 // HH:MM:SS.D
 float horarioCadenaASegundos(char cadena[11]);
@@ -104,6 +144,28 @@ int main()
     guardarReporteEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop);
     guardarPodiosEnArchivo(reportesCorredoresClasica, cantidadCorredoresClasica);
     guardarPodiosEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop);
+
+    CorredorCiudad corredoresCiudad[1000];
+    int cantidadCorredoresCiudad = 0;
+    cargarCorredoresCiudad(corredoresCiudad, cantidadCorredoresCiudad);
+
+    ReporteCorredor corredoresCarreraTotal[1000];
+    unirCorredores(reportesCorredoresClasica,
+                   cantidadCorredoresClasica,
+                   reportesCorredoresNonstop,
+                   cantidadCorredoresNonstop,
+                   corredoresCarreraTotal);
+
+    Localidad localidades[1000];
+    int cantidadLocalidades = 0;
+    generarReporteLocalidades(localidades,
+                              cantidadLocalidades,
+                              corredoresCarreraTotal,
+                              cantidadCorredoresClasica + cantidadCorredoresNonstop,
+                              corredoresCiudad,
+                              cantidadCorredoresCiudad);
+    ordenarLocalidades(localidades, cantidadLocalidades);
+    mostrarLocalidades(localidades, cantidadLocalidades);
 
     return 0;
 }
@@ -247,6 +309,106 @@ void guardarPodiosEnArchivo(ReporteCorredor corredores[], int cantidadCorredores
     fwrite(reportesPodios, sizeof(ReporteCorredor), indiceReportes, archivoPodios);
     fclose(archivoPodios);
 }
+
+void unirCorredores(ReporteCorredor corredoresCarrera1[],
+                    int cantidadCorredores1,
+                    ReporteCorredor corredoresCarrera2[],
+                    int cantidadCorredores2,
+                    ReporteCorredor corredoresCarreraTotal[])
+{
+    for (int i = 0; i < cantidadCorredores1; i++)
+    {
+        corredoresCarreraTotal[i] = corredoresCarrera1[i];
+    }
+    for (int i = 0; i < cantidadCorredores2; i++)
+    {
+        corredoresCarreraTotal[i + cantidadCorredores1] = corredoresCarrera2[i];
+    }
+}
+
+void cargarCorredoresCiudad(CorredorCiudad corredoresCiudad[], int &cantidadCorredoresCiudad)
+{
+    FILE *archivoCorredoresCiudad = fopen("C:/programming/utn/integrador/Ciudades.bin", "rb");
+    if (!archivoCorredoresCiudad)
+    {
+        cout << "Error al abrir el archivo Ciudades.bin";
+        return;
+    }
+
+    int i = 0;
+    while (fread(&corredoresCiudad[i], sizeof(CorredorCiudad), 1, archivoCorredoresCiudad) == 1)
+    {
+        i++;
+    }
+    fclose(archivoCorredoresCiudad);
+    cantidadCorredoresCiudad = i + 1;
+}
+
+void generarReporteLocalidades(Localidad localidades[],
+                               int &cantidadLocalidades,
+                               ReporteCorredor reportesCorredor[],
+                               int cantidadCorredores,
+                               CorredorCiudad corredoresCiudad[],
+                               int cantidadCorredoresCiudad)
+{
+    for (int i = 0; i < cantidadCorredores; i++)
+    {
+        int posicionLocalidad = -1;
+        for (int j = 0; j < cantidadLocalidades; j++)
+        {
+            if (strcmp(reportesCorredor[i].localidad, localidades[j].nombre) == 0)
+            {
+                posicionLocalidad = j;
+                break;
+            }
+        }
+
+        int posicionCorredorCiudad = -1;
+        for (int k = 0; k < cantidadCorredoresCiudad; k++)
+        {
+            if (reportesCorredor[i].numero == corredoresCiudad[k].numero)
+            {
+                posicionCorredorCiudad = k;
+                break;
+            }
+        }
+
+        if (posicionCorredorCiudad == -1)
+        {
+            continue;
+        }
+
+        if (posicionLocalidad == -1)
+        {
+            strcpy(localidades[cantidadLocalidades].nombre, reportesCorredor[i].localidad);
+            localidades[cantidadLocalidades].cantidadCorredores = 1;
+            strcpy(localidades[cantidadLocalidades].ciudades[0].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
+            localidades[cantidadLocalidades].ciudades[0].cantidadCorredores = 1;
+            strcpy(localidades[cantidadLocalidades].ciudades[0].promedioTiempo, reportesCorredor[i].tiempoTotal);
+            cantidadLocalidades++;
+        }
+        else
+        {
+            localidades[posicionLocalidad].cantidadCorredores++;
+            int posicionCiudad = -1;
+            for (int j = 0; j < localidades[posicionLocalidad].cantidadCiudades; j++)
+            {
+                if (strcmp(localidades[posicionLocalidad].ciudades[j].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad) == 0)
+                {
+                    posicionCiudad = j;
+                    break;
+                }
+            }
+            // falta ver que pasa si posicionCiudad = -1
+            localidades[posicionLocalidad].ciudades[posicionCiudad].cantidadCorredores++;
+            float tiempoPromedioCiudad = horarioCadenaASegundos(localidades[posicionLocalidad].ciudades[posicionCiudad].promedioTiempo);
+            float tiempoTotalCorredorActual = horarioCadenaASegundos(reportesCorredor[i].tiempoTotal);
+            tiempoPromedioCiudad = (tiempoPromedioCiudad * (localidades[posicionLocalidad].ciudades[posicionCiudad].cantidadCorredores - 1) + tiempoTotalCorredorActual) / localidades[posicionLocalidad].ciudades[posicionCiudad].cantidadCorredores;
+            strcpy(localidades[posicionLocalidad].ciudades[posicionCiudad].promedioTiempo, horarioSegundosACadena(tiempoPromedioCiudad));
+            // Falta calcular el promedio de tiempo de la localidad
+        }
+    }
+};
 
 // HH:MM:SS.D
 float horarioCadenaASegundos(char cadena[11])
