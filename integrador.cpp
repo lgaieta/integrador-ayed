@@ -170,6 +170,13 @@ int main()
     return 0;
 }
 
+void cargarHorarioSalida(char horarioSalida[])
+{
+    cout << "Ingrese horario de salida (HH:MM:SS.D): ";
+    cin >> horarioSalida;
+    cout << endl;
+}
+
 void generarReporte(ReporteCorredor corredores[], int cantidadCorredores)
 {
     ContadorCategoria contadoresCategoria[1000];
