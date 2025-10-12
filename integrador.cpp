@@ -360,6 +360,7 @@ void generarReporteLocalidades(Localidad localidades[],
 {
     for (int i = 0; i < cantidadCorredores; i++)
     {
+        // Busco si ya hay una localidad guardada que coincida con el corredor i
         int posicionLocalidad = -1;
         for (int j = 0; j < cantidadLocalidades; j++)
         {
@@ -370,6 +371,7 @@ void generarReporteLocalidades(Localidad localidades[],
             }
         }
 
+        // Busco el corredor en la lista de corredores con su ciudad
         int posicionCorredorCiudad = -1;
         for (int k = 0; k < cantidadCorredoresCiudad; k++)
         {
@@ -385,62 +387,57 @@ void generarReporteLocalidades(Localidad localidades[],
             continue;
         }
 
+        // Si no hay localidad guardada, la creo
         if (posicionLocalidad == -1)
         {
-            strcpy(localidades[cantidadLocalidades].nombre, reportesCorredor[i].localidad);
-            localidades[cantidadLocalidades].cantidadCorredores = 1;
-            strcpy(localidades[cantidadLocalidades].ciudades[0].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
-            localidades[cantidadLocalidades].ciudades[0].cantidadCorredores = 1;
-            strcpy(localidades[cantidadLocalidades].ciudades[0].promedioTiempo, reportesCorredor[i].tiempoTotal);
-            localidades[cantidadLocalidades].cantidadCiudades = 1;
-            strcpy(localidades[cantidadLocalidades].tiempoPromedio, reportesCorredor[i].tiempoTotal);
+            Localidad &localidadActual = localidades[cantidadLocalidades];
+            strcpy(localidadActual.nombre, reportesCorredor[i].localidad);
+            localidadActual.cantidadCorredores = 1;
+            strcpy(localidadActual.ciudades[0].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
+            localidadActual.ciudades[0].cantidadCorredores = 1;
+            strcpy(localidadActual.ciudades[0].promedioTiempo, reportesCorredor[i].tiempoTotal);
+            localidadActual.cantidadCiudades = 1;
+            strcpy(localidadActual.tiempoPromedio, reportesCorredor[i].tiempoTotal);
             cantidadLocalidades++;
+            continue;
         }
-        else
+
+        Localidad &localidadActual = localidades[posicionLocalidad];
+        // Actualizar localidad: promedio ponderado por cantidad de corredores
+        float tiempoTotalCorredorActual = horarioCadenaASegundos(reportesCorredor[i].tiempoTotal);
+        float actualPromedioLocalidad = horarioCadenaASegundos(localidadActual.tiempoPromedio);
+        float nuevoPromedioLocalidad = (actualPromedioLocalidad * localidadActual.cantidadCorredores + tiempoTotalCorredorActual) / (localidadActual.cantidadCorredores + 1);
+        strcpy(localidadActual.tiempoPromedio, horarioSegundosACadena(nuevoPromedioLocalidad));
+        localidadActual.cantidadCorredores++;
+
+        // Busco si ya hay una ciudad guardada en la localidad que coincida con el corredor i
+        int posicionCiudad = -1;
+        for (int j = 0; j < localidadActual.cantidadCiudades; j++)
         {
-            Localidad &localidadActual = localidades[posicionLocalidad];
-            localidadActual.cantidadCorredores++;
-            int posicionCiudad = -1;
-            for (int j = 0; j < localidadActual.cantidadCiudades; j++)
+            if (strcmp(localidadActual.ciudades[j].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad) == 0)
             {
-                if (strcmp(localidadActual.ciudades[j].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad) == 0)
-                {
-                    posicionCiudad = j;
-                    break;
-                }
-            }
-            if (posicionCiudad == -1)
-            {
-                strcpy(localidadActual.ciudades[localidadActual.cantidadCiudades].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
-                localidadActual.ciudades[localidadActual.cantidadCiudades].cantidadCorredores = 1;
-                strcpy(localidadActual.ciudades[localidadActual.cantidadCiudades].promedioTiempo, reportesCorredor[i].tiempoTotal);
-                localidadActual.cantidadCiudades++;
-
-                // Recalcular promedio de la localidad con el tiempo del corredor actual
-                float tiempoTotalCorredorActual = horarioCadenaASegundos(reportesCorredor[i].tiempoTotal);
-                float prevAvgLocalidad = horarioCadenaASegundos(localidadActual.tiempoPromedio);
-                int prevCountLocalidad = localidadActual.cantidadCorredores - 1; // ya incrementado
-                float nuevoAvgLocalidad = (prevAvgLocalidad * prevCountLocalidad + tiempoTotalCorredorActual) / localidadActual.cantidadCorredores;
-                strcpy(localidadActual.tiempoPromedio, horarioSegundosACadena(nuevoAvgLocalidad));
-            }
-            else
-            {
-                ReporteCiudad &ciudadActual = localidadActual.ciudades[posicionCiudad];
-                float tiempoTotalCorredorActual = horarioCadenaASegundos(reportesCorredor[i].tiempoTotal);
-                // Actualizar ciudad: promedio ponderado por cantidad de corredores
-                float prevAvgCiudad = horarioCadenaASegundos(ciudadActual.promedioTiempo);
-                int prevCountCiudad = ciudadActual.cantidadCorredores;
-                ciudadActual.cantidadCorredores = prevCountCiudad + 1;
-                float nuevoAvgCiudad = (prevAvgCiudad * prevCountCiudad + tiempoTotalCorredorActual) / ciudadActual.cantidadCorredores;
-                strcpy(ciudadActual.promedioTiempo, horarioSegundosACadena(nuevoAvgCiudad));
-
-                // Actualizar localidad: promedio ponderado por cantidad de corredores
-                float prevAvgLocalidad = horarioCadenaASegundos(localidadActual.tiempoPromedio);
-                int prevCountLocalidad = localidadActual.cantidadCorredores - 1; // ya incrementado al entrar al else
-                float nuevoAvgLocalidad = (prevAvgLocalidad * prevCountLocalidad + tiempoTotalCorredorActual) / localidadActual.cantidadCorredores;
-                strcpy(localidadActual.tiempoPromedio, horarioSegundosACadena(nuevoAvgLocalidad));
+                posicionCiudad = j;
+                break;
             }
         }
+
+        // Si no hay ciudad guardada, la creo
+        if (posicionCiudad == -1)
+        {
+            ReporteCiudad &ciudadActual = localidadActual.ciudades[localidadActual.cantidadCiudades];
+            strcpy(ciudadActual.nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
+            ciudadActual.cantidadCorredores = 1;
+            strcpy(ciudadActual.promedioTiempo, reportesCorredor[i].tiempoTotal);
+            localidadActual.cantidadCiudades++;
+            continue;
+        }
+
+        // Actualizar ciudad: promedio ponderado por cantidad de corredores
+        ReporteCiudad &ciudadActual = localidadActual.ciudades[posicionCiudad];
+        float actualPromedioCiudad = horarioCadenaASegundos(ciudadActual.promedioTiempo);
+        float nuevoPromedioCiudad = (actualPromedioCiudad * ciudadActual.cantidadCorredores + tiempoTotalCorredorActual) / (ciudadActual.cantidadCorredores + 1);
+        strcpy(ciudadActual.promedioTiempo, horarioSegundosACadena(nuevoPromedioCiudad));
+        ciudadActual.cantidadCorredores++;
     }
 };
 
