@@ -441,6 +441,43 @@ void generarReporteLocalidades(Localidad localidades[],
     }
 };
 
+void ordenarCiudadesPorNombre(Localidad &localidad)
+{
+    for (int i = 0; i < localidad.cantidadCiudades - 1; i++)
+    {
+        int posicionMenor = i;
+        for (int j = i; j < localidad.cantidadCiudades - i - 1; j++)
+        {
+            if (strcmp(localidad.ciudades[j].nombre, localidad.ciudades[posicionMenor].nombre) < 0)
+            {
+                posicionMenor = j;
+            }
+        }
+        ReporteCiudad temp = localidad.ciudades[i];
+        localidad.ciudades[i] = localidad.ciudades[posicionMenor];
+        localidad.ciudades[posicionMenor] = temp;
+    }
+}
+
+void ordenarLocalidades(Localidad localidades[], int cantidadLocalidades)
+{
+    for (int i = 0; i < cantidadLocalidades - 1; i++)
+    {
+        ordenarCiudadesPorNombre(localidades[i]);
+        int posicionMenor = i;
+        for (int j = i; j < cantidadLocalidades - i - 1; j++)
+        {
+            if (strcmp(localidades[j].nombre, localidades[posicionMenor].nombre) < 0)
+            {
+                posicionMenor = j;
+            }
+        }
+        Localidad temp = localidades[i];
+        localidades[i] = localidades[posicionMenor];
+        localidades[posicionMenor] = temp;
+    }
+}
+
 // HH:MM:SS.D
 float horarioCadenaASegundos(char cadena[11])
 {
