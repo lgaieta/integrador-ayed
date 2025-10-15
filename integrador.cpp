@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <cstdio>
 
 using namespace std;
 
@@ -59,6 +60,7 @@ struct ReporteCiudad
 {
     char nombre[11];
     int cantidadCorredores;
+    int cantidadFinalizados;
     char promedioTiempo[11];
 };
 
@@ -66,28 +68,25 @@ struct Localidad
 {
     char nombre[40];
     int cantidadCorredores;
+    int cantidadFinalizados;
     char tiempoPromedio[11];
     int cantidadCiudades;
     ReporteCiudad ciudades[1000];
 };
 
-void cargarHorarioSalida(char[]);
+bool esCorredorEnNonstop(RegistroCorredor);
 void cargarCorredores(RegistroCorredor registrosCorredoresClasica[],
                       int &cantidadCorredoresClasica,
                       RegistroCorredor registrosCorredoresNonstop[],
-                      int &cantidadCorredoresNonstop);
+                      int &cantidadCorredoresNonstop,
+                      char rutaArchivo[]);
 
-bool esDescalificado(ReporteCorredor);
-ReporteCorredor calcularTiempo(RegistroCorredor, char horarioSalida[]);
-
-void calcularTiempos(RegistroCorredor[],
-                     ReporteCorredor[],
-                     int cantidadCorredores,
-                     char horarioSalida[]);
-
-void generarReporte(ReporteCorredor[], int cantidadCorredores);
-void guardarReporteEnArchivo(ReporteCorredor[], int cantidadCorredores);
-void guardarPodiosEnArchivo(ReporteCorredor[], int cantidadCorredores);
+bool esDescalificado(RegistroCorredor);
+ReporteCorredor inicializarReporteCorredor(RegistroCorredor);
+void generarReporte(RegistroCorredor[], ReporteCorredor[], int cantidadCorredores);
+void mostrarReporteCorredores(ReporteCorredor[], int cantidadCorredores);
+void guardarReporteEnArchivo(ReporteCorredor[], int cantidadCorredores, char nombreArchivo[]);
+void guardarPodiosEnArchivo(ReporteCorredor[], int cantidadCorredores, char nombreArchivo[]);
 void cargarCorredoresCiudad(CorredorCiudad[], int &cantidadCorredoresCiudad);
 
 void unirCorredores(ReporteCorredor corredoresCarrera1[],
@@ -106,16 +105,14 @@ void generarReporteLocalidades(Localidad[],
 void ordenarCiudadesPorNombre(Localidad &localidad);
 void ordenarLocalidades(Localidad localidades[], int cantidadLocalidades);
 void mostrarLocalidades(Localidad localidades[], int cantidadLocalidades);
+void guardarLocalidadesEnArchivo(Localidad localidades[], int cantidadLocalidades, char rutaArchivo[]);
 
 // HH:MM:SS.D
 float horarioCadenaASegundos(char cadena[11]);
-char *horarioSegundosACadena(float segundos);
+const char *horarioSegundosACadena(float segundos);
 
 int main()
 {
-    char horarioSalida[11];
-    cargarHorarioSalida(horarioSalida);
-
     RegistroCorredor registrosCorredoresClasica[1000];
     int cantidadCorredoresClasica = 0;
     RegistroCorredor registrosCorredoresNonstop[1000];
@@ -123,27 +120,21 @@ int main()
     cargarCorredores(registrosCorredoresClasica,
                      cantidadCorredoresClasica,
                      registrosCorredoresNonstop,
-                     cantidadCorredoresNonstop);
+                     cantidadCorredoresNonstop,
+                     "C:/programming/utn/integrador/Archivo corredores 4Refugios.bin");
 
     ReporteCorredor reportesCorredoresClasica[1000];
     ReporteCorredor reportesCorredoresNonstop[1000];
 
-    calcularTiempos(registrosCorredoresClasica,
-                    reportesCorredoresClasica,
-                    cantidadCorredoresClasica,
-                    horarioSalida);
-    calcularTiempos(registrosCorredoresNonstop,
-                    reportesCorredoresNonstop,
-                    cantidadCorredoresNonstop,
-                    horarioSalida);
+    generarReporte(registrosCorredoresClasica, reportesCorredoresClasica, cantidadCorredoresClasica);
+    generarReporte(registrosCorredoresNonstop, reportesCorredoresNonstop, cantidadCorredoresNonstop);
 
-    generarReporte(reportesCorredoresClasica, cantidadCorredoresClasica);
-    generarReporte(reportesCorredoresNonstop, cantidadCorredoresNonstop);
-
-    guardarReporteEnArchivo(reportesCorredoresClasica, cantidadCorredoresClasica);
-    guardarReporteEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop);
-    guardarPodiosEnArchivo(reportesCorredoresClasica, cantidadCorredoresClasica);
-    guardarPodiosEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop);
+    guardarReporteEnArchivo(reportesCorredoresClasica, cantidadCorredoresClasica, "C:/programming/utn/integrador/ReporteCorredoresClasica.bin");
+    guardarReporteEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop, "C:/programming/utn/integrador/ReporteCorredoresNonstop.bin");
+    mostrarReporteCorredores(reportesCorredoresClasica, cantidadCorredoresClasica);
+    mostrarReporteCorredores(reportesCorredoresNonstop, cantidadCorredoresNonstop);
+    guardarPodiosEnArchivo(reportesCorredoresClasica, cantidadCorredoresClasica, "C:/programming/utn/integrador/PodiosClasica.bin");
+    guardarPodiosEnArchivo(reportesCorredoresNonstop, cantidadCorredoresNonstop, "C:/programming/utn/integrador/PodiosNonstop.bin");
 
     CorredorCiudad corredoresCiudad[1000];
     int cantidadCorredoresCiudad = 0;
@@ -156,7 +147,7 @@ int main()
                    cantidadCorredoresNonstop,
                    corredoresCarreraTotal);
 
-    Localidad localidades[1000];
+    static Localidad localidades[1000];
     int cantidadLocalidades = 0;
     generarReporteLocalidades(localidades,
                               cantidadLocalidades,
@@ -166,18 +157,95 @@ int main()
                               cantidadCorredoresCiudad);
     ordenarLocalidades(localidades, cantidadLocalidades);
     mostrarLocalidades(localidades, cantidadLocalidades);
+    guardarLocalidadesEnArchivo(localidades, cantidadLocalidades, "C:/programming/utn/integrador/ReporteLocalidades.bin");
 
     return 0;
 }
 
-void cargarHorarioSalida(char horarioSalida[])
+bool esCorredorEnNonstop(RegistroCorredor corredor)
 {
-    cout << "Ingrese horario de salida (HH:MM:SS.D): ";
-    cin >> horarioSalida;
-    cout << endl;
+    return strncmp(corredor.categoria, "4 Refugios NonStop", 18) == 0;
 }
 
-void generarReporte(ReporteCorredor corredores[], int cantidadCorredores)
+bool esDescalificado(char tiempo[])
+{
+    if (strncmp(tiempo, "DNF", 3) == 0)
+        return true;
+
+    if (strncmp(tiempo, "DNF (NL)", 8) == 0)
+        return true;
+
+    if (strncmp(tiempo, "DSQ (FE)", 8) == 0)
+        return true;
+
+    if (strncmp(tiempo, "No Termino", 10) == 0)
+        return true;
+
+    return false;
+}
+
+void cargarCorredores(RegistroCorredor registrosCorredoresClasica[],
+                      int &cantidadCorredoresClasica,
+                      RegistroCorredor registrosCorredoresNonstop[],
+                      int &cantidadCorredoresNonstop,
+                      char rutaArchivo[])
+{
+    RegistroCorredor corredorActual;
+    FILE *archivo = fopen(rutaArchivo, "rb");
+    if (archivo == NULL)
+    {
+        cout << "Error al abrir el archivo de corredores." << endl;
+        return;
+    }
+
+    cantidadCorredoresClasica = 0;
+    cantidadCorredoresNonstop = 0;
+
+    while (fread(&corredorActual, sizeof(RegistroCorredor), 1, archivo) == 1)
+    {
+        if (esCorredorEnNonstop(corredorActual))
+        {
+            registrosCorredoresNonstop[cantidadCorredoresNonstop] = corredorActual;
+            cantidadCorredoresNonstop++;
+        }
+        else
+        {
+            registrosCorredoresClasica[cantidadCorredoresClasica] = corredorActual;
+            cantidadCorredoresClasica++;
+        }
+    }
+
+    std::fclose(archivo);
+}
+
+ReporteCorredor inicializarReporteCorredor(RegistroCorredor registro)
+{
+    ReporteCorredor reporte;
+    reporte.numero = registro.numero;
+    std::strcpy(reporte.nombreApellido, registro.nombreApellido);
+    std::strcpy(reporte.categoria, registro.categoria);
+    reporte.genero = registro.genero;
+    std::strcpy(reporte.localidad, registro.localidad);
+
+    if (esDescalificado(registro.llegada))
+    {
+        std::strcpy(reporte.tiempoTotal, "No Termino");
+    }
+    else
+    {
+        std::strcpy(reporte.tiempoTotal, registro.llegada);
+    }
+
+    // Inicializar diferencias y posiciones (se completan luego en generarReporte)
+    std::strcpy(reporte.diferenciaPrimero, "00:00:00,0");
+    std::strcpy(reporte.diferenciaAnterior, "00:00:00,0");
+    reporte.posicionGeneral = 0;
+    reporte.posicionGenero = 0;
+    reporte.posicionCategoria = 0;
+    return reporte;
+}
+
+void generarReporte(RegistroCorredor registrosCorredores[], ReporteCorredor reportesCorredores[], int cantidadCorredores)
 {
     ContadorCategoria contadoresCategoria[1000];
     int cantidadCategorias = 0;
@@ -186,36 +254,48 @@ void generarReporte(ReporteCorredor corredores[], int cantidadCorredores)
 
     for (int i = 0; i < cantidadCorredores; i++)
     {
+        reportesCorredores[i] = inicializarReporteCorredor(registrosCorredores[i]);
+    }
+
+    for (int i = 0; i < cantidadCorredores; i++)
+    {
         // Obtener el mayor actual por tiempo total
-        int posicionMayorActual = i;
+        int posicionMenorActual = i;
         for (int j = i + 1; j < cantidadCorredores; j++)
         {
-            if (horarioCadenaASegundos(corredores[j].tiempoTotal) > horarioCadenaASegundos(corredores[posicionMayorActual].tiempoTotal))
+            bool jDNF = strcmp(reportesCorredores[j].tiempoTotal, "No Termino") == 0;
+            bool menorActualDNF = strcmp(reportesCorredores[posicionMenorActual].tiempoTotal, "No Termino") == 0;
+            if (!jDNF && menorActualDNF)
             {
-                posicionMayorActual = j;
+                posicionMenorActual = j;
+            }
+            else if (!jDNF && !menorActualDNF &&
+                     horarioCadenaASegundos(reportesCorredores[j].tiempoTotal) < horarioCadenaASegundos(reportesCorredores[posicionMenorActual].tiempoTotal))
+            {
+                posicionMenorActual = j;
             }
         }
 
         // Asignar posicion general
-        corredores[posicionMayorActual].posicionGeneral = i + 1;
+        reportesCorredores[posicionMenorActual].posicionGeneral = i + 1;
 
         // Asignar posicion por categoria
         bool categoriaEncontrada = false;
         for (int k = 0; k < cantidadCategorias; k++)
         {
-            if (strcmp(corredores[posicionMayorActual].categoria, contadoresCategoria[k].categoria) == 0)
+            if (strcmp(reportesCorredores[posicionMenorActual].categoria, contadoresCategoria[k].categoria) == 0)
             {
                 contadoresCategoria[k].cantidad++;
-                corredores[posicionMayorActual].posicionCategoria = contadoresCategoria[k].cantidad;
+                reportesCorredores[posicionMenorActual].posicionCategoria = contadoresCategoria[k].cantidad;
                 categoriaEncontrada = true;
                 break;
             }
         }
         if (categoriaEncontrada == false)
         {
-            strcpy(contadoresCategoria[cantidadCategorias].categoria, corredores[posicionMayorActual].categoria);
+            std::strcpy(contadoresCategoria[cantidadCategorias].categoria, reportesCorredores[posicionMenorActual].categoria);
             contadoresCategoria[cantidadCategorias].cantidad = 1;
-            corredores[posicionMayorActual].posicionCategoria = 1;
+            reportesCorredores[posicionMenorActual].posicionCategoria = 1;
             cantidadCategorias++;
         }
 
@@ -223,30 +303,61 @@ void generarReporte(ReporteCorredor corredores[], int cantidadCorredores)
         bool generoEncontrado = false;
         for (int k = 0; k < cantidadGeneros; k++)
         {
-            if (corredores[posicionMayorActual].genero == contadoresGenero[k].genero)
+            if (reportesCorredores[posicionMenorActual].genero == contadoresGenero[k].genero)
             {
                 contadoresGenero[k].cantidad++;
-                corredores[posicionMayorActual].posicionGenero = contadoresGenero[k].cantidad;
+                reportesCorredores[posicionMenorActual].posicionGenero = contadoresGenero[k].cantidad;
                 generoEncontrado = true;
                 break;
             }
         }
         if (generoEncontrado == false)
         {
-            contadoresGenero[cantidadGeneros].genero = corredores[posicionMayorActual].genero;
+            contadoresGenero[cantidadGeneros].genero = reportesCorredores[posicionMenorActual].genero;
             contadoresGenero[cantidadGeneros].cantidad = 1;
-            corredores[posicionMayorActual].posicionGenero = 1;
+            reportesCorredores[posicionMenorActual].posicionGenero = 1;
             cantidadGeneros++;
         }
 
         // Intercambio de posiciones para ordenar por tiempo total
-        ReporteCorredor aux = corredores[posicionMayorActual];
-        corredores[posicionMayorActual] = corredores[i];
-        corredores[i] = aux;
+        ReporteCorredor aux = reportesCorredores[posicionMenorActual];
+        reportesCorredores[posicionMenorActual] = reportesCorredores[i];
+        reportesCorredores[i] = aux;
+    }
+
+    // Cargar campos de diferenciaPrimero y diferenciaAnterior
+    float tiempoPrimero = horarioCadenaASegundos(reportesCorredores[0].tiempoTotal);
+    for (int i = 1; i < cantidadCorredores; i++)
+    {
+        bool actualDNF = strcmp(reportesCorredores[i].tiempoTotal, "No Termino") == 0;
+        if (!actualDNF)
+        {
+            float tiempoActual = horarioCadenaASegundos(reportesCorredores[i].tiempoTotal);
+            std::strcpy(reportesCorredores[i].diferenciaPrimero, horarioSegundosACadena(tiempoActual - tiempoPrimero));
+            float tiempoAnterior = horarioCadenaASegundos(reportesCorredores[i - 1].tiempoTotal);
+            std::strcpy(reportesCorredores[i].diferenciaAnterior, horarioSegundosACadena(tiempoActual - tiempoAnterior));
+        }
+        else
+        {
+            std::strcpy(reportesCorredores[i].diferenciaAnterior, "No Termino");
+            std::strcpy(reportesCorredores[i].diferenciaPrimero, "No Termino");
+        }
     }
 }
 
-void guardarPodiosEnArchivo(ReporteCorredor corredores[], int cantidadCorredores)
+void guardarReporteEnArchivo(ReporteCorredor corredores[], int cantidadCorredores, char nombreArchivo[])
+{
+    FILE *archivo = fopen(nombreArchivo, "wb");
+    if (!archivo)
+    {
+        cout << "Error al abrir el archivo de salida " << nombreArchivo << endl;
+        return;
+    }
+    fwrite(corredores, sizeof(ReporteCorredor), cantidadCorredores, archivo);
+    fclose(archivo);
+}
+
+void guardarPodiosEnArchivo(ReporteCorredor corredores[], int cantidadCorredores, char nombreArchivo[])
 {
     PodioCategoria podios[1000];
     int cantidadPodios = 0;
@@ -271,7 +382,7 @@ void guardarPodiosEnArchivo(ReporteCorredor corredores[], int cantidadCorredores
 
         if (categoriaEncontrada == false)
         {
-            strcpy(podios[cantidadPodios].categoria, corredores[i].categoria);
+            std::strcpy(podios[cantidadPodios].categoria, corredores[i].categoria);
             podios[cantidadPodios].corredores[0] = corredores[i];
             podios[cantidadPodios].cantidadCargada = 1;
             cantidadPodios++;
@@ -284,7 +395,7 @@ void guardarPodiosEnArchivo(ReporteCorredor corredores[], int cantidadCorredores
         int posicionMenorActual = i;
         for (int j = i + 1; j < cantidadPodios; j++)
         {
-            if (strcmp(podios[i].categoria, podios[j].categoria) < 0)
+            if (strcmp(podios[j].categoria, podios[posicionMenorActual].categoria) < 0)
             {
                 posicionMenorActual = j;
             }
@@ -306,10 +417,37 @@ void guardarPodiosEnArchivo(ReporteCorredor corredores[], int cantidadCorredores
         }
     }
 
-    FILE *archivoPodios = fopen("C:/programming/utn/integrador/podios.bin", "wb");
+    // Mostrar por consola los podios por categoria
+    printf("\nPodios por categoria (%s)\n", nombreArchivo);
+    printf("%-50s %-6s %-6s %-30s %-12s\n",
+           "Categoria", "Puesto", "Numero", "Nombre y Apellido", "Tiempo");
+    for (int k = 0; k < 106; ++k)
+        putchar('-');
+    putchar('\n');
+
+    for (int i = 0; i < indiceReportes; ++i)
+    {
+        // Asegurar terminación nula por seguridad
+        reportesPodios[i].categoria[49] = '\0';
+        reportesPodios[i].nombreApellido[49] = '\0';
+        reportesPodios[i].tiempoTotal[10] = '\0';
+
+        printf("%-50.50s %-6d %-6d %-30.30s %-12.12s\n",
+               reportesPodios[i].categoria,
+               reportesPodios[i].posicionCategoria,
+               reportesPodios[i].numero,
+               reportesPodios[i].nombreApellido,
+               reportesPodios[i].tiempoTotal);
+    }
+    for (int k = 0; k < 106; ++k)
+        putchar('-');
+    putchar('\n');
+    printf("Total de entradas de podio: %d\n\n", indiceReportes);
+
+    FILE *archivoPodios = fopen(nombreArchivo, "wb");
     if (!archivoPodios)
     {
-        cout << "Error al abrir el archivo podios.bin";
+        cout << "Error al abrir el archivo " << nombreArchivo << endl;
         return;
     }
 
@@ -348,7 +486,7 @@ void cargarCorredoresCiudad(CorredorCiudad corredoresCiudad[], int &cantidadCorr
         i++;
     }
     fclose(archivoCorredoresCiudad);
-    cantidadCorredoresCiudad = i + 1;
+    cantidadCorredoresCiudad = i;
 }
 
 void generarReporteLocalidades(Localidad localidades[],
@@ -360,17 +498,6 @@ void generarReporteLocalidades(Localidad localidades[],
 {
     for (int i = 0; i < cantidadCorredores; i++)
     {
-        // Busco si ya hay una localidad guardada que coincida con el corredor i
-        int posicionLocalidad = -1;
-        for (int j = 0; j < cantidadLocalidades; j++)
-        {
-            if (strcmp(reportesCorredor[i].localidad, localidades[j].nombre) == 0)
-            {
-                posicionLocalidad = j;
-                break;
-            }
-        }
-
         // Busco el corredor en la lista de corredores con su ciudad
         int posicionCorredorCiudad = -1;
         for (int k = 0; k < cantidadCorredoresCiudad; k++)
@@ -383,38 +510,48 @@ void generarReporteLocalidades(Localidad localidades[],
         }
 
         if (posicionCorredorCiudad == -1)
-        {
             continue;
+
+        // Busco si ya hay una localidad guardada que coincida con el corredor i
+        int posicionLocalidad = -1;
+        for (int j = 0; j < cantidadLocalidades; j++)
+        {
+            if (strncmp(reportesCorredor[i].localidad, localidades[j].nombre, 40) == 0)
+            {
+                posicionLocalidad = j;
+                break;
+            }
         }
+
+        bool esCorredorDNF = esDescalificado(reportesCorredor[i].tiempoTotal);
 
         // Si no hay localidad guardada, la creo
         if (posicionLocalidad == -1)
         {
             Localidad &localidadActual = localidades[cantidadLocalidades];
-            strcpy(localidadActual.nombre, reportesCorredor[i].localidad);
+            std::strcpy(localidadActual.nombre, reportesCorredor[i].localidad);
             localidadActual.cantidadCorredores = 1;
-            strcpy(localidadActual.ciudades[0].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
+            std::strcpy(localidadActual.ciudades[0].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
             localidadActual.ciudades[0].cantidadCorredores = 1;
-            strcpy(localidadActual.ciudades[0].promedioTiempo, reportesCorredor[i].tiempoTotal);
+            localidadActual.ciudades[0].cantidadFinalizados = esCorredorDNF ? 0 : 1;
+            std::strcpy(localidadActual.ciudades[0].promedioTiempo, esCorredorDNF ? "00:00:00" : reportesCorredor[i].tiempoTotal);
+
             localidadActual.cantidadCiudades = 1;
-            strcpy(localidadActual.tiempoPromedio, reportesCorredor[i].tiempoTotal);
+            localidadActual.cantidadFinalizados = esCorredorDNF ? 0 : 1;
+            std::strcpy(localidadActual.tiempoPromedio, esCorredorDNF ? "00:00:00" : reportesCorredor[i].tiempoTotal);
+
             cantidadLocalidades++;
             continue;
         }
 
         Localidad &localidadActual = localidades[posicionLocalidad];
-        // Actualizar localidad: promedio ponderado por cantidad de corredores
-        float tiempoTotalCorredorActual = horarioCadenaASegundos(reportesCorredor[i].tiempoTotal);
-        float actualPromedioLocalidad = horarioCadenaASegundos(localidadActual.tiempoPromedio);
-        float nuevoPromedioLocalidad = (actualPromedioLocalidad * localidadActual.cantidadCorredores + tiempoTotalCorredorActual) / (localidadActual.cantidadCorredores + 1);
-        strcpy(localidadActual.tiempoPromedio, horarioSegundosACadena(nuevoPromedioLocalidad));
         localidadActual.cantidadCorredores++;
 
         // Busco si ya hay una ciudad guardada en la localidad que coincida con el corredor i
         int posicionCiudad = -1;
         for (int j = 0; j < localidadActual.cantidadCiudades; j++)
         {
-            if (strcmp(localidadActual.ciudades[j].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad) == 0)
+            if (strncmp(localidadActual.ciudades[j].nombre, corredoresCiudad[posicionCorredorCiudad].ciudad, 11) == 0)
             {
                 posicionCiudad = j;
                 break;
@@ -425,30 +562,44 @@ void generarReporteLocalidades(Localidad localidades[],
         if (posicionCiudad == -1)
         {
             ReporteCiudad &ciudadActual = localidadActual.ciudades[localidadActual.cantidadCiudades];
-            strcpy(ciudadActual.nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
+            std::strcpy(ciudadActual.nombre, corredoresCiudad[posicionCorredorCiudad].ciudad);
             ciudadActual.cantidadCorredores = 1;
-            strcpy(ciudadActual.promedioTiempo, reportesCorredor[i].tiempoTotal);
+            ciudadActual.cantidadFinalizados = esCorredorDNF ? 0 : 1;
+            std::strcpy(ciudadActual.promedioTiempo, esCorredorDNF ? "00:00:00" : reportesCorredor[i].tiempoTotal);
             localidadActual.cantidadCiudades++;
             continue;
         }
 
-        // Actualizar ciudad: promedio ponderado por cantidad de corredores
         ReporteCiudad &ciudadActual = localidadActual.ciudades[posicionCiudad];
-        float actualPromedioCiudad = horarioCadenaASegundos(ciudadActual.promedioTiempo);
-        float nuevoPromedioCiudad = (actualPromedioCiudad * ciudadActual.cantidadCorredores + tiempoTotalCorredorActual) / (ciudadActual.cantidadCorredores + 1);
-        strcpy(ciudadActual.promedioTiempo, horarioSegundosACadena(nuevoPromedioCiudad));
         ciudadActual.cantidadCorredores++;
+
+        if (esCorredorDNF)
+            continue;
+
+        // Actualizar localidad: promedio ponderado por cantidad de corredores
+        float tiempoTotalCorredorActual = horarioCadenaASegundos(reportesCorredor[i].tiempoTotal);
+        float actualPromedioLocalidad = horarioCadenaASegundos(localidadActual.tiempoPromedio);
+        float nuevoPromedioLocalidad = (actualPromedioLocalidad * localidadActual.cantidadFinalizados + tiempoTotalCorredorActual) / (localidadActual.cantidadFinalizados + 1);
+        std::strcpy(localidadActual.tiempoPromedio, horarioSegundosACadena(nuevoPromedioLocalidad));
+        localidadActual.cantidadFinalizados++;
+
+        // Actualizar ciudad: promedio ponderado por cantidad de corredores
+        float actualPromedioCiudad = horarioCadenaASegundos(ciudadActual.promedioTiempo);
+        float nuevoPromedioCiudad = (actualPromedioCiudad * ciudadActual.cantidadFinalizados + tiempoTotalCorredorActual) / (ciudadActual.cantidadFinalizados + 1);
+        std::strcpy(ciudadActual.promedioTiempo, horarioSegundosACadena(nuevoPromedioCiudad));
+        ciudadActual.cantidadFinalizados++;
     }
 };
 
 void ordenarCiudadesPorNombre(Localidad &localidad)
 {
+    // Selection sort ascendente por nombre de ciudad
     for (int i = 0; i < localidad.cantidadCiudades - 1; i++)
     {
         int posicionMenor = i;
-        for (int j = i; j < localidad.cantidadCiudades - i - 1; j++)
+        for (int j = i + 1; j < localidad.cantidadCiudades; j++)
         {
-            if (strcmp(localidad.ciudades[j].nombre, localidad.ciudades[posicionMenor].nombre) < 0)
+            if (strncmp(localidad.ciudades[j].nombre, localidad.ciudades[posicionMenor].nombre, 11) < 0)
             {
                 posicionMenor = j;
             }
@@ -461,13 +612,14 @@ void ordenarCiudadesPorNombre(Localidad &localidad)
 
 void ordenarLocalidades(Localidad localidades[], int cantidadLocalidades)
 {
+    // Selection sort ascendente por nombre de localidad
     for (int i = 0; i < cantidadLocalidades - 1; i++)
     {
         ordenarCiudadesPorNombre(localidades[i]);
         int posicionMenor = i;
-        for (int j = i; j < cantidadLocalidades - i - 1; j++)
+        for (int j = i + 1; j < cantidadLocalidades; j++)
         {
-            if (strcmp(localidades[j].nombre, localidades[posicionMenor].nombre) < 0)
+            if (strncmp(localidades[j].nombre, localidades[posicionMenor].nombre, 40) < 0)
             {
                 posicionMenor = j;
             }
@@ -478,9 +630,89 @@ void ordenarLocalidades(Localidad localidades[], int cantidadLocalidades)
     }
 }
 
+void mostrarReporteCorredores(ReporteCorredor corredores[], int cantidadCorredores)
+{
+    // Encabezado de la tabla
+    printf("%-8s %-10s %-8s %-6s %-30s %-30s %-8s %-20s %-12s %-12s %-12s\n",
+           "PosGen", "PosGenero", "PosCat", "Numero",
+           "Nombre y Apellido", "Categoria", "Genero",
+           "Localidad", "Tiempo", "DifPrimero", "DifAnterior");
+    for (int k = 0; k < 160; ++k)
+        putchar('-');
+    putchar('\n');
+
+    // Filas de datos
+    for (int i = 0; i < cantidadCorredores; ++i)
+    {
+        printf("%-8d %-10d %-8d %-6d %-30.30s %-30.30s %-8c %-20.20s %-12.12s %-12.12s %-12.12s\n",
+               corredores[i].posicionGeneral,
+               corredores[i].posicionGenero,
+               corredores[i].posicionCategoria,
+               corredores[i].numero,
+               corredores[i].nombreApellido,
+               corredores[i].categoria,
+               corredores[i].genero,
+               corredores[i].localidad,
+               corredores[i].tiempoTotal,
+               corredores[i].diferenciaPrimero,
+               corredores[i].diferenciaAnterior);
+    }
+}
+
+void mostrarLocalidades(Localidad localidades[], int cantidadLocalidades)
+{
+    // Encabezado tabla de localidades
+    printf("%-32s %-12s %-12s\n", "Localidad", "Promedio", "Corredores");
+    for (int k = 0; k < 56; ++k)
+        putchar('-');
+    putchar('\n');
+
+    for (int i = 0; i < cantidadLocalidades; i++)
+    {
+        printf("%-32s %-12s %-12d\n",
+               localidades[i].nombre,
+               localidades[i].tiempoPromedio,
+               localidades[i].cantidadCorredores);
+
+        // Encabezado subtabla de ciudades
+        printf("  %-14s %-12s %-12s\n", "Ciudad", "Promedio", "Corredores");
+        printf("  ");
+        for (int k = 0; k < 42; ++k)
+            putchar('-');
+        putchar('\n');
+
+        for (int j = 0; j < localidades[i].cantidadCiudades; j++)
+        {
+            printf("  %-14s %-12s %-12d\n",
+                   localidades[i].ciudades[j].nombre,
+                   localidades[i].ciudades[j].promedioTiempo,
+                   localidades[i].ciudades[j].cantidadCorredores);
+        }
+
+        printf("\n");
+    }
+}
+
+void guardarLocalidadesEnArchivo(Localidad localidades[], int cantidadLocalidades, char rutaArchivo[])
+{
+    FILE *archivo = fopen(rutaArchivo, "wb");
+    if (!archivo)
+    {
+        cout << "Error al abrir el archivo para escritura: " << rutaArchivo << endl;
+        return;
+    }
+
+    fwrite(localidades, sizeof(Localidad), cantidadLocalidades, archivo);
+
+    fclose(archivo);
+}
+
 // HH:MM:SS.D
 float horarioCadenaASegundos(char cadena[11])
 {
+    if (strcmp(cadena, "No Termino") == 0)
+        return 0;
+
     float acumulador = 0;
     acumulador += ((cadena[0] - 48) * 10 + (cadena[1] - 48)) * 3600;
     acumulador += ((cadena[3] - 48) * 10 + (cadena[4] - 48)) * 60;
@@ -490,8 +722,11 @@ float horarioCadenaASegundos(char cadena[11])
     return acumulador;
 }
 
-char *horarioSegundosACadena(float segundos)
+const char *horarioSegundosACadena(float segundos)
 {
+    if (segundos == 0)
+        return "No Termino";
+
     int horas = (segundos / 60) / 60;
     static char hours[11];
 
@@ -509,7 +744,7 @@ char *horarioSegundosACadena(float segundos)
     hours[5] = ':';
     hours[6] = ((int)segs / 10) + 48;
     hours[7] = ((int)segs % 10) + 48;
-    hours[8] = ',';
+    hours[8] = '.';
     hours[9] = ((int)(segs * 10) % 10) + 48;
     hours[10] = '\0';
     return hours;
